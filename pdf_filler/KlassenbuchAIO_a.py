@@ -1,172 +1,166 @@
 # Klassenbuchscraper AiO Package
-# version 0.6.4 ALPHA for 'pdf_filler' by mxwmnn
-# 2023/07/19
+# version 0.8.0 ALPHA for 'pdf_filler' by mxwmnn
+# Updated: 2024/03/21
 
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
-from selenium.common.exceptions import NoSuchElementException
+from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
-from bs4 import re
-from time import sleep
-import getpass
-import os
-import sys
 
-options=Options()
-options.add_argument('-headless')
-browser = webdriver.chromium(options=options)
-
-def countdown(x):
-    sleep(1)
-    #print('')
-    sleep(1)
-    #print(f'{x}', "seconds left before refreshing.", end="\r")
-    sleep(1)
-    for count in range(x, 1, -1):   
-        #print(f'{count}', "seconds left before refreshing.", end='\r')
-        sleep(1)
-    #print("1 second left before refreshing.", end='\r')
-    sleep(1)
-    sleep(0.2)
-    #print('')
-    #print("Refreshing..")
-    sleep(0.8)
-
-def clear():
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-def enterCreds():
-    #print("Please enter your credentials. You may correct them, if the login doesn't work.")
-    User = input('Username: ')
-    Pass = getpass.getpass(prompt='Password: ')
-    if User == "":
-        #print('Please enter a username.')
-        User = input('Username: ')
-    if Pass == "":
-        Pass = getpass.getpass(prompt='Please enter a password: ')
-        #print('Credentials accepted.')
-    sleep(1)
-    clear()
-    return User, Pass
-
-def checkCreds(User, Pass):
-    if User == "":
-        User = input('Username: ')
-    else:
-        #print('Username: ', User)
-        changeit = input('Do you want to change the username? (N/Y):')
-        if changeit.lower() == "y":
-            User = input('Username: ')
-            clear()
-            #print(User)
-    if Pass == "":
-        #print('Please enter a valid password')
-        Pass = getpass.getpass(prompt='Enter a password please: ')
-    else:
-        pwc = input('Do you want to VISIBLY check your password? (N/Y):')       
-    if pwc.lower() == "y":
-        #print('Username: ', User)
-        #print('Password: ', Pass)
-        sleep(3)
-        clear()      
-    pwr = input('Do you want to change your password? (N/Y):') 
-    if pwr.lower() == "y":
-        Pass = getpass.getpass(prompt='Enter a new password please: ')          
-    return User, Pass
-
-def loginUser(User, Pass):
+def loginUser(page, User, Pass):
     try:
-        browser.get("https://lernplattform.gfn.de/login/index.php")
-        username = browser.find_element(By.ID, 'username')
-        password = browser.find_element(By.ID, 'password')
-        loginbut = browser.find_element(By.CLASS_NAME, 'btn-primary')
-        #print("Logging in ..")
-        username.clear()
-        username.send_keys(User)
-        password.clear()
-        password.send_keys(Pass)
-        loginbut.click()
-        sleep(1)
-        if "Ungültige Anmeldedaten. Versuchen Sie es noch einmal!" in browser.page_source:
-            #print("Wrong credentials. Please check your input!")
-            User, Pass = checkCreds(User, Pass)
-            sleep(1.5)
-            loginUser(User, Pass)
-        else:
-            logged_in = True
-            #print('Login successful!')
-            return
-    except NoSuchElementException:
-        #print('Already signed in.')
-        logged_in = True
-    finally:
-        soup = BeautifulSoup(browser.page_source, 'html.parser')
-        fullname = soup.find("span", {"id": "actionmenuaction-1"}).text
-        return fullname
+        page.goto("https://lernplattform.gfn.de/login/index.php")
+        page.fill('#username', User)
+        page.fill('#password', Pass)
+        page.click('.btn-primary')
+        page.wait_for_load_state('networkidle')
+        
+        if "Ungültige Anmeldedaten. Versuchen Sie es noch einmal!" in page.content():
+            raise Exception("Invalid credentials")
+        
+    except Exception as e:
+        raise Exception(f"Login failed: {e}")
 
-def Kursmenu():
-    Kurse = {}    
-    browser.get('https://lernplattform.gfn.de/my/')
-    soup = BeautifulSoup(browser.page_source, 'html.parser')
-    kurse_els = soup.find_all('a', class_='list-group-item')
-    for kurs in kurse_els:
-        kursname = kurs.find('span').text
-        if kursname.startswith("LF", 0,2):
-            href = kurs['href']
-            Kurse[kursname] = href
-        else:
-            continue
-    return Kurse
+    try:
+        page.goto("https://lernplattform.gfn.de/user/profile.php")
+        page.wait_for_load_state('networkidle')
+    except Exception as e:
+        raise Exception(f"Page could not load with error: {e}")
     
-def klassenbucher(Kurse):
-    classbooks = {}
-    for key in Kurse.keys():
-        browser.get(Kurse[key])
-        soup = BeautifulSoup(browser.page_source, 'html.parser')
-        Klassenbuch = soup.find('h3', string = 'Klassenbuch')
-        section = '&section=' + Klassenbuch.parent.get('id')[-1]
-        linkstr = Kurse[key] + f'{section}'
-        sleep(0.5)
-        browser.get(linkstr)
+    soup = BeautifulSoup(page.content(), 'html.parser')
+    fullname_element = soup.select_one('div.page-header-headings h1.h2')
+    if fullname_element:
+        fullname = fullname_element.text.strip()
+    else:
+        raise Exception("Could not find user's full name")
+    
+    return fullname
+
+def Kursmenu(page):
+    Kurse = {}    
+    page.goto('https://lernplattform.gfn.de/my/courses.php')
+    page.wait_for_load_state('networkidle')
+    
+    # Check if the user is logged in
+    if "Sie sind als Gast angemeldet" in page.content():
+        raise Exception("User is not logged in properly")
+    
+    # Check if "Alle" is already selected
+    alle_button = page.query_selector('button.dropdown-toggle:has-text("Alle")')
+    if not alle_button:
+        # If "Alle" is not selected, try to select it
         try:
-            klassenbuchelement = browser.find_element(By.CLASS_NAME, 'activitytitle')
-        except NoSuchElementException:
+            page.click('button[data-toggle="dropdown"][aria-haspopup="true"]')
+            page.wait_for_selector('.dropdown-menu[data-show-active-item]', state='visible')
+            page.click('.dropdown-menu[data-show-active-item] a[data-limit="0"]')
+            page.wait_for_load_state('networkidle')
+        except Exception as e:
+            print(f"Warning: Error when trying to show all courses: {e}")
+    
+    # Ensure all courses are loaded
+    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+    page.wait_for_load_state('networkidle')
+    
+    soup = BeautifulSoup(page.content(), 'html.parser')
+    
+    # Look for the course view container
+    course_view = soup.find('div', {'data-region': 'courses-view'})
+    
+    if not course_view:
+        print("Warning: Course view container not found. The page structure might have changed.")
+        return Kurse
+    
+    # Find all course cards
+    course_cards = soup.find_all('div', class_='card dashboard-card')
+    
+    for card in course_cards:
+        # Find the full course name
+        full_course_name = card.find('span', class_='multiline')
+        if full_course_name:
+            kursname = full_course_name['title'].strip()
+            
+            # Find the course link
+            course_link = card.find('a', class_='coursename')
+            if course_link:
+                href = course_link['href']
+                
+                # Check if the course name starts with "LF"
+                if kursname.startswith("LF"):
+                    Kurse[kursname] = href
+    
+    if not Kurse:
+        print("Warning: No courses found. The user might not be enrolled in any courses.")
+    
+    return Kurse
+
+
+def klassenbucher(page, Kurse):
+    classbooks = {}
+    for key, url in Kurse.items():
+        page.goto(url)
+        page.wait_for_load_state('networkidle')
+        
+        # Look for the "Klassenraum" section
+        klassenraum_section = page.query_selector('li#section-0')
+        if not klassenraum_section:
+            print(f"Warning: Klassenraum section not found for course {key}")
             continue
-        klassenbuchelement.click()
-        sleep(0.5)
-        anzeigelink = browser.current_url + '&view=5'
-        browser.get(anzeigelink)
-        sleep(0.5)
-        soup2 = BeautifulSoup(browser.page_source, 'html.parser')
-        table = browser.find_element(By.CLASS_NAME, 'boxaligncenter')
-        daten = table.find_elements(By.CLASS_NAME, 'datecol')
-        desc = table.find_elements(By.CLASS_NAME, 'desccol')
+        # here needs to be fixed some things
+        # Find the "Klassenbuch" activity within the Klassenraum section, doesn't work
+        klassenbuch_link = klassenraum_section.query_selector('a:has-text("Klassenbuch")')
+        if not klassenbuch_link:
+            print(f"Warning: Klassenbuch link not found for course {key}")
+            continue
+        
+        # Navigate to the Klassenbuch page
+        klassenbuch_link.click()
+        page.wait_for_load_state('networkidle')
+        
+        # Look for the "Anzeigen" link
+        anzeigen_link = page.query_selector('a:has-text("Anzeigen")')
+        if not anzeigen_link:
+            print(f"Warning: Anzeigen link not found for course {key}")
+            continue
+        
+        # Navigate to the Anzeigen page
+        anzeigen_link.click()
+        page.wait_for_load_state('networkidle')
+        
+        # Extract the data from the table
+        table = page.query_selector('.boxaligncenter')
+        if not table:
+            print(f"Warning: Data table not found for course {key}")
+            continue
+        
+        daten = table.query_selector_all('.datecol')
+        desc = table.query_selector_all('.desccol')
+        
         classbook = {}
-        d=0
-        for x in daten:
-            Datum = x.text
-            Desc = desc[d].text
+        for datum, description in zip(daten, desc):
+            Datum = datum.inner_text()
+            Desc = description.inner_text()
             cleanedDesc = Desc.replace("\n", "; ")
             classbook[Datum] = cleanedDesc
-            classbooks[key] = classbook
-            d = d + 1
+        
+        classbooks[key] = classbook
+    
     return classbooks
 
 def main(benutzer, passwort):
-    useri, passi = benutzer, passwort if benutzer != "" else enterCreds()
-    fullname = loginUser(useri, passi)
-    sleep(0.1)
-    # clear()
-    Kurse = Kursmenu()
-    output = klassenbucher(Kurse)
-    browser.quit()
-    # while True:
-    #     clear()
-    #     print(output)
-    #     countdown(10)    
-    return output
-    
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        
+        fullname = loginUser(page, benutzer, passwort)
+        Kurse = Kursmenu(page)
+        output = klassenbucher(page, Kurse)
+        browser.close()
+        return output
+
 if __name__ == '__main__':
-    benutzer, passwort = enterCreds()
-    main(benutzer, passwort)
+    # Assuming credentials are passed as environment variables or command-line arguments
+    import os
+    benutzer = os.environ.get('USERNAME')
+    passwort = os.environ.get('PASSWORD')
+    if not benutzer or not passwort:
+        raise ValueError("USERNAME and PASSWORD must be set as environment variables")
+    result = main(benutzer, passwort)
+    print(result)  # Or handle the result as needed

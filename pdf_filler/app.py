@@ -16,6 +16,7 @@ from flask import (
     send_file,
     session,
     url_for,
+    current_app,
 )
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -30,9 +31,6 @@ from browser import init
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
-app.config["TEMPLATES_AUTO_RELOAD"] = True
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 # app.config[
 #     "SQLALCHEMY_DATABASE_URI"
@@ -101,31 +99,34 @@ def generator():
 # def generate():
 
 
+# Use LocalProxy to access the data dictionary
+data = LocalProxy(lambda: current_app.config['USER_DATA'])
+
 @app.route("/login", methods=["POST", "GET"])
 def login():
-    global data
-    session.clear()
-
     if request.method == "POST":
-        # Ensure username was submitted
-        if not request.form.get("username"):
-            return apology("An E-Mail is required", 403)
+        username = request.form.get("username")
+        password = request.form.get("password")
 
-        # Ensure password was submitted
-        elif not request.form.get("password"):
-            return apology("A Password is required", 403)
+        if not username:
+            return apology("An email is required", 403)
+        if not password:
+            return apology("A password is required", 403)
 
-        if not login_user(request.form.get("username"), request.form.get("password")):
-            return apology("Sorry, aber deine Moodle Daten sind falsch!", 403)
+        if not login_user(username, password):
+            return apology("Invalid Moodle credentials", 403)
 
-        data = {}
+        user_id, user_data = ho(username, password)
+        
+        session.clear()
+        session["user_id"] = user_id
+        
+        # Store user data in app config instead of global variable
+        if 'USER_DATA' not in current_app.config:
+            current_app.config['USER_DATA'] = {}
+        current_app.config['USER_DATA'][user_id] = user_data
 
-        # session["user_id"] = getUsername()
-
-        session["user_id"], data[session["user_id"]] = ho(
-            request.form.get("username"), request.form.get("password")
-        )
-        return redirect("/")
+        return redirect(url_for('index'))
 
     return render_template("login.html", version=VERSION)
 
