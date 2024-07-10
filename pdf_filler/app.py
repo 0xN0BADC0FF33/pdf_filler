@@ -25,7 +25,7 @@ from helpers import apology, is_old, login_required
 from homeoffice import getUsername, login_user
 from homeoffice import main as ho
 from waitress import serve
-
+from werkzeug.local import LocalProxy
 # from flask_sqlalchemy import SQLAlchemy
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -112,10 +112,12 @@ def login():
         if not password:
             return apology("A password is required", 403)
 
-        if not login_user(username, password):
-            return apology("Invalid Moodle credentials", 403)
+
 
         user_id, user_data = ho(username, password)
+
+        if user_id or user_data == None:
+            return apology("We couldn't log you in. Check credentials.", 400)
         
         session.clear()
         session["user_id"] = user_id
