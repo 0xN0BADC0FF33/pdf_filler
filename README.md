@@ -4,10 +4,12 @@
 [![Docker Image CI](https://github.com/mxwmnn/pdf_filler/actions/workflows/docker-image.yml/badge.svg)](https://github.com/mxwmnn/pdf_filler/actions/workflows/docker-image.yml)
 [![license](https://img.shields.io/badge/License-GPL%203.0-brightgreen.svg)](LICENSE)
 
+Now actively developing again. Expected final version by the end of August 2024.
+
 ## Technology Stack
 - Flask 
-- OpenAI GPT3.5-turbo
-- Selenium with Firefox-esr
+- OpenAI GPT4-o
+- Playwright Docker
 - BeautifulSoup 
 
 This is only for improve in coding and cause we're lazy to write this shitty forms.
@@ -23,12 +25,12 @@ docker compose --env-file .env up --build -d
 ```
 
 ## Known Bugs?
-- PDF's only looks fine in chrome. Firefox okay but looks ugly. Acrobat only shows text if you click on it.
+- PDF's only looks fine in chrome. Firefox okay but looks ugly. Acrobat only shows text if you click on it. Will maybe fixed.
 
 ### Todo
 Look at projects page but a little list
 - [x] Login Form 
-- [ ] User Interface
+- [x] User Interface
 - [ ] Add own notes to different berichtshefte
 - [ ] Option to recreate the AI completion if not satisfied
 - [x] Login into your moodle to see HOMEOFFICE Calculator (@1sqp)
