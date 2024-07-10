@@ -146,7 +146,7 @@ def klassenbucher(page, Kurse):
 
 def main(benutzer, passwort):
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.connect("ws://localhost:9222")
         page = browser.new_page()
         
         fullname = loginUser(page, benutzer, passwort)

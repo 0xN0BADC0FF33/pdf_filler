@@ -382,7 +382,7 @@ def getUsername(page):
 
 def main(benutzer, passwort):
     with sync_playwright() as p:
-        browser = p.chromium.connect("ws://localhost:9222")
+        browser = p.chromium.connect("ws://playwright:9222")
         page = browser.new_page()
         if login_user(page, benutzer, passwort):
             fullname, home = Homecalculator(page)
