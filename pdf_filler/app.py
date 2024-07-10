@@ -30,6 +30,11 @@ from werkzeug.local import LocalProxy
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
+# Set the secret key for the session
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '7sdDtak6db5Se6k4sQgHnNi7iQY7r72jzy2nSkAjDNsCrgIAmiDOOUweiTAMM429')
+
+# Configure the session
+app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 # app.config[
 #     "SQLALCHEMY_DATABASE_URI"
@@ -116,10 +121,13 @@ def login():
 
         user_id, user_data = ho(username, password)
 
-        if user_id or user_data == None:
+        if user_id is None or user_data is None:
             return apology("We couldn't log you in. Check credentials.", 400)
         
-        session.clear()
+
+        
+        # Now we can safely use the session
+        # session.clear()
         session["user_id"] = user_id
         
         # Store user data in app config instead of global variable
@@ -167,6 +175,9 @@ def main():
     with contextlib.suppress(BaseException):
         # shutil.rmtree(conf['LOCATION'])
         os.makedirs(f"{conf['LOCATION']}/pdf")
+        
+
+
     serve(app, host=conf["HOSTIP"], port=conf["PORT"])
     # app.run(host=conf['HOSTIP'], port=conf['PORT'], debug=True)
 
