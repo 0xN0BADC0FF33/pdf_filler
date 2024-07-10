@@ -15,7 +15,7 @@ import sys
 
 options=Options()
 options.add_argument('-headless')
-browser = webdriver.Firefox(options=options)
+browser = webdriver.chromium(options=options)
 
 def countdown(x):
     sleep(1)
