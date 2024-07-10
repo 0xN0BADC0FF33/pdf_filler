@@ -25,7 +25,6 @@ from helpers import apology, is_old, login_required
 from homeoffice import getUsername, login_user
 from homeoffice import main as ho
 from waitress import serve
-from browser import init
 
 # from flask_sqlalchemy import SQLAlchemy
 from werkzeug.middleware.proxy_fix import ProxyFix
