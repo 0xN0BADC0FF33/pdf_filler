@@ -98,30 +98,34 @@ def klassenbucher(page, Kurse):
         page.goto(url)
         page.wait_for_load_state('networkidle')
         
-        # Look for the "Klassenraum" section
-        klassenraum_section = page.query_selector('li#section-0')
-        if not klassenraum_section:
-            print(f"Warning: Klassenraum section not found for course {key}")
-            continue
-        # here needs to be fixed some things
-        # Find the "Klassenbuch" activity within the Klassenraum section, doesn't work
-        klassenbuch_link = klassenraum_section.query_selector('a:has-text("Klassenbuch")')
+        # Find the Klassenbuch link
+        klassenbuch_link = None
+        grid_sections = page.query_selector_all('div.grid-section.card')
+        for section in grid_sections:
+            title = section.query_selector('.card-header')
+            if title and 'Klassenbuch' in title.inner_text():
+                klassenbuch_link = section.query_selector('a.grid-section-inner')
+                break
+        
         if not klassenbuch_link:
             print(f"Warning: Klassenbuch link not found for course {key}")
             continue
         
-        # Navigate to the Klassenbuch page
-        klassenbuch_link.click()
+        klassenbuch_url = klassenbuch_link.get_attribute('href')
+        page.goto(klassenbuch_url)
         page.wait_for_load_state('networkidle')
         
-        # Look for the "Anzeigen" link
-        anzeigen_link = page.query_selector('a:has-text("Anzeigen")')
+
+        anzeigen_link = page.query_selector('a.courseindex-link[href*="/mod/attendance/view.php"]')
         if not anzeigen_link:
             print(f"Warning: Anzeigen link not found for course {key}")
             continue
         
+        anzeigen_url = anzeigen_link.get_attribute('href')
+        anzeigen_url += '&view=5'
+        
         # Navigate to the Anzeigen page
-        anzeigen_link.click()
+        page.goto(anzeigen_url)
         page.wait_for_load_state('networkidle')
         
         # Extract the data from the table
@@ -163,4 +167,4 @@ if __name__ == '__main__':
     if not benutzer or not passwort:
         raise ValueError("USERNAME and PASSWORD must be set as environment variables")
     result = main(benutzer, passwort)
-    print(result)  # Or handle the result as needed
+    print(result)  # Or handle the result as needed2
