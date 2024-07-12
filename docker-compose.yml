@@ -20,7 +20,7 @@ services:
 
   bheft_generator:
     container_name: bheft_generator
-    restart: always
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
@@ -29,6 +29,7 @@ services:
 
   playwright:
     image: mcr.microsoft.com/playwright:v1.45.1-focal
+    restart: unless-stopped 
     ports:
       - "9222:9222"
     command: npx playwright run-server --port=9222
