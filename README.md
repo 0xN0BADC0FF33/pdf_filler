@@ -1,7 +1,6 @@
 # Very early alpha stage of a IHK FISI/FIAE PDF Form Berichtsheft filler.
 ![python-version](https://img.shields.io/badge/python-3.11-blue.svg)
 [![openai-version](https://img.shields.io/badge/openai-0.27.8-orange.svg)](https://openai.com/)
-[![Docker Image CI](https://github.com/mxwmnn/pdf_filler/actions/workflows/docker-image.yml/badge.svg)](https://github.com/mxwmnn/pdf_filler/actions/workflows/docker-image.yml)
 [![license](https://img.shields.io/badge/License-GPL%203.0-brightgreen.svg)](LICENSE)
 
 Now actively developing again. Expected final version by the end of August 2024.
@@ -12,12 +11,13 @@ Now actively developing again. Expected final version by the end of August 2024.
 - Playwright Docker
 - BeautifulSoup 
 
-This is only for improve in coding and cause we're lazy to write this shitty forms.
+This is only for improve in programming/deploying and cause we're lazy to write this shitty forms.
 
 ## Start using Docker
 Copy the .env file and edit the variables
 ```bash
 cp .env.example .env
+nano .env
 ```
 and then run it
 ```bash
