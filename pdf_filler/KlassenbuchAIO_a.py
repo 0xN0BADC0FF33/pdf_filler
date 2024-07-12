@@ -163,4 +163,4 @@ if __name__ == '__main__':
     if not benutzer or not passwort:
         raise ValueError("USERNAME and PASSWORD must be set as environment variables")
     result = main(benutzer, passwort)
-    print(result)  # Or handle the result as needed
+    print(result)  # Or handle the result as needed2
